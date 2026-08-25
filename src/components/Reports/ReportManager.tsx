@@ -296,8 +296,8 @@ export const ReportManager: React.FC<ReportManagerProps> = ({
       // Đảm bảo có phân bổ thí sinh
       let currentAssignments = assignments;
       if (Object.keys(currentAssignments).length === 0 && students.length > 0 && effectiveRooms.length > 0) {
-        const alloc = RoomAllocationService.allocateRooms(students, effectiveRooms);
-        currentAssignments = alloc.assignments;
+        const plan = RoomAllocationService.runAlgorithmicAllocation(students, effectiveRooms, examConfig.so_hoc_sinh_phong || 24);
+        currentAssignments = plan.assignments;
       }
 
       effectiveRooms.forEach((r, idx) => {
