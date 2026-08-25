@@ -11,6 +11,7 @@ export interface SupabaseConfig {
 }
 
 const DEFAULT_SUPABASE_URL = 'https://ohxzlbqfeldxpgtawtvh.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9oeHpsYnFmZWxkeHBndGF3dHZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2ODg1MTYsImV4cCI6MjEwMzI2NDUxNn0.er5EUFaZshFlmKx4ZcebjVDFa9glKBkAhvA4yFGjNC8';
 
 export class SupabaseService {
   private static client: SupabaseClient | null = null;
@@ -22,13 +23,13 @@ export class SupabaseService {
         const parsed = JSON.parse(data);
         return {
           url: parsed.url || DEFAULT_SUPABASE_URL,
-          anonKey: parsed.anonKey || '',
+          anonKey: parsed.anonKey || DEFAULT_SUPABASE_ANON_KEY,
           autoSync: Boolean(parsed.autoSync)
         };
       }
-      return { url: DEFAULT_SUPABASE_URL, anonKey: '', autoSync: false };
+      return { url: DEFAULT_SUPABASE_URL, anonKey: DEFAULT_SUPABASE_ANON_KEY, autoSync: true };
     } catch {
-      return { url: DEFAULT_SUPABASE_URL, anonKey: '', autoSync: false };
+      return { url: DEFAULT_SUPABASE_URL, anonKey: DEFAULT_SUPABASE_ANON_KEY, autoSync: true };
     }
   }
 
