@@ -96,54 +96,78 @@ export class AIClientService {
     };
   }
 
-  // 1. Google Gemini API Call
+  // 1. Google Gemini API Call (Hỗ trợ đa phiên bản Gemini 2.5, 2.0, 1.5)
   private static async callGemini(prompt: string, apiKey: string): Promise<string> {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: 2048
-        }
-      })
-    });
+    const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+    let lastErr = '';
 
-    if (!res.ok) {
-      const errJson = await res.json().catch(() => ({}));
-      throw new Error(errJson?.error?.message || `Gemini HTTP Error ${res.status}`);
+    for (const model of models) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: 0.2,
+              maxOutputTokens: 3000
+            }
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (text) return text;
+        } else {
+          const errJson = await res.json().catch(() => ({}));
+          lastErr = errJson?.error?.message || `HTTP ${res.status}`;
+        }
+      } catch (err: any) {
+        lastErr = err.message || String(err);
+      }
     }
 
-    const data = await res.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    throw new Error(`Google Gemini API Error: ${lastErr || 'Không nhận được phản hồi'}`);
   }
 
   // 2. OpenRouter API Call (Fallback 1)
   private static async callOpenRouter(prompt: string, apiKey: string): Promise<string> {
-    const url = 'https://openrouter.ai/api/v1/chat/completions';
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'HTTP-Referer': 'https://quanlykythi.edu.vn',
-        'X-Title': 'QuanLyKyThi THPT'
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.0-flash-thinking-exp:free',
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
+    const models = ['google/gemini-2.5-flash', 'google/gemini-2.0-flash-001', 'deepseek/deepseek-chat', 'meta-llama/llama-3.3-70b-instruct'];
+    let lastErr = '';
 
-    if (!res.ok) {
-      const errJson = await res.json().catch(() => ({}));
-      throw new Error(errJson?.error?.message || `OpenRouter HTTP Error ${res.status}`);
+    for (const model of models) {
+      try {
+        const url = 'https://openrouter.ai/api/v1/chat/completions';
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey.trim()}`,
+            'HTTP-Referer': 'https://quanlykythi.edu.vn',
+            'X-Title': 'QuanLyKyThi THPT Ca Mau'
+          },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: 'user', content: prompt }]
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const text = data.choices?.[0]?.message?.content;
+          if (text) return text;
+        } else {
+          const errJson = await res.json().catch(() => ({}));
+          lastErr = errJson?.error?.message || `HTTP ${res.status}`;
+        }
+      } catch (err: any) {
+        lastErr = err.message || String(err);
+      }
     }
 
-    const data = await res.json();
-    return data.choices?.[0]?.message?.content || '';
+    throw new Error(`OpenRouter API Error: ${lastErr || 'Không nhận được phản hồi'}`);
   }
 
   // 3. DeepSeek API Call (Fallback 2)
@@ -153,7 +177,7 @@ export class AIClientService {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Authorization': `Bearer ${apiKey.trim()}`
       },
       body: JSON.stringify({
         model: 'deepseek-chat',
@@ -211,31 +235,35 @@ Yêu cầu xuất kết quả theo định dạng JSON chuẩn gồm các trư�
     "Khuyến nghị 3 về kỹ thuật làm bài thi trắc nghiệm/tự luận"
   ]
 }
-Chỉ trả về JSON thuần, không bọc markdown \`\`\`json.
+Chỉ trả về định dạng JSON thuần, không chèn bất kỳ văn bản nào ngoài khối JSON.
 `;
 
     try {
       const response = await this.executeWithFallback(prompt, 'Phân tích Kết quả thi');
       let cleaned = response.text.trim();
-      if (cleaned.startsWith('```json')) cleaned = cleaned.replace(/^```json/, '').replace(/```$/, '').trim();
-      else if (cleaned.startsWith('```')) cleaned = cleaned.replace(/^```/, '').replace(/```$/, '').trim();
+      
+      // Bóc tách JSON an toàn bằng Regex
+      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        cleaned = jsonMatch[0];
+      }
 
       const parsed = JSON.parse(cleaned);
       const result: AISubjectAnalysis = {
         tong_quan: parsed.tong_quan || 'Tổng quan kết quả kỳ thi đạt yêu cầu chuẩn.',
-        mon_manh: parsed.mon_manh || [],
-        mon_yeu_can_luu_y: parsed.mon_yeu_can_luu_y || [],
-        lop_can_boi_duong: parsed.lop_can_boi_duong || weakClasses,
+        mon_manh: Array.isArray(parsed.mon_manh) ? parsed.mon_manh : [],
+        mon_yeu_can_luu_y: Array.isArray(parsed.mon_yeu_can_luu_y) ? parsed.mon_yeu_can_luu_y : [],
+        lop_can_boi_duong: Array.isArray(parsed.lop_can_boi_duong) ? parsed.lop_can_boi_duong : weakClasses,
         nhan_xet_chi_tiet: parsed.nhan_xet_chi_tiet || '',
-        kien_nghi_su_pham: parsed.kien_nghi_su_pham || [],
+        kien_nghi_su_pham: Array.isArray(parsed.kien_nghi_su_pham) ? parsed.kien_nghi_su_pham : [],
         timestamp: new Date().toISOString(),
         provider_used: response.provider
       };
 
       DBService.saveAIAnalysis(result);
       return result;
-    } catch {
-      // Fallback offline generator if parsing fails
+    } catch (err: any) {
+      console.warn('[AI Service] Parsing failed or API error, using intelligent fallback:', err);
       const fallbackAnalysis = this.getFallbackParsedAnalysis(schoolName, examName, stats, passRateTotal, weakClasses);
       DBService.saveAIAnalysis(fallbackAnalysis);
       return fallbackAnalysis;

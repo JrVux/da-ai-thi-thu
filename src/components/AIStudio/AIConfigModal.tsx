@@ -40,11 +40,12 @@ export const AIConfigModal: React.FC<AIConfigModalProps> = ({
   };
 
   const handleTestConnection = async () => {
+    AIClientService.saveConfig(config);
     setIsTesting(true);
     setTestResult(null);
     try {
       const res = await AIClientService.executeWithFallback(
-        'Hãy phản hồi ngắn gọn: "Kết nối AI thành công và sẵn sàng phục vụ khảo thí THPT."',
+        'Hãy phản hồi ngắn gọn: "Kết nối AI thành công và sẵn sàng phục vụ khảo thí THPT Cà Mau."',
         'Test Connection'
       );
       setTestResult(`✅ Thành công qua: ${res.provider} (Độ trễ: ${res.latency}ms)\nNội dung: ${res.text}`);
