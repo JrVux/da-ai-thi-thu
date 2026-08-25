@@ -11,7 +11,8 @@ import {
   FolderOpen,
   Plus,
   Cloud,
-  RefreshCw
+  RefreshCw,
+  LogOut
 } from 'lucide-react';
 import { School, ExamConfig, UserRole } from '../../types';
 import defaultSchoolLogo from '../../assets/logo.png';
@@ -34,6 +35,7 @@ interface NavbarProps {
   onOpenAIModal: () => void;
   onSyncCloud?: () => void;
   isSyncingCloud?: boolean;
+  onLogout?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -54,6 +56,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenAIModal,
   onSyncCloud,
   isSyncingCloud,
+  onLogout,
 }) => {
   const [showAddSchool, setShowAddSchool] = useState(false);
   const [newSchoolName, setNewSchoolName] = useState('');
@@ -139,6 +142,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
             <span>Super Admin</span>
           </div>
+
+          {/* Logout / Lock Button */}
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-950/80 hover:bg-rose-900 border border-rose-600/40 text-rose-200 hover:text-white text-xs font-semibold transition-all shadow-xs cursor-pointer"
+              title="Đăng xuất và khóa phiên làm việc"
+            >
+              <LogOut className="w-3.5 h-3.5 text-rose-400" />
+              <span>Đăng Xuất</span>
+            </button>
+          )}
         </div>
       </div>
 

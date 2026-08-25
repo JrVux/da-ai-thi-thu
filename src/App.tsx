@@ -118,6 +118,14 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleLogout = () => {
+    if (window.confirm('Bạn có chắc chắn muốn ĐĂNG XUẤT và khóa lại phần mềm?')) {
+      DBService.deactivateSystem();
+      setIsActivated(false);
+      addToast('info', 'Đã đăng xuất thành công', 'Phần mềm đã được khóa lại an toàn.');
+    }
+  };
+
   useEffect(() => {
     DBService.setActiveSchoolId(activeSchoolId);
     const currExamId = DBService.getActiveExamId();
@@ -320,6 +328,7 @@ export const App: React.FC = () => {
         onOpenAIModal={() => setIsAIModalOpen(true)}
         onSyncCloud={handleSyncCloud}
         isSyncingCloud={isSyncingCloud}
+        onLogout={handleLogout}
       />
 
       {/* Main Content Area */}
