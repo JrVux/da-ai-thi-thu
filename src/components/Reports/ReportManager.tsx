@@ -32,6 +32,7 @@ import { ScoreCalculator } from '../../services/score-calc';
 import { ExportService, ExportReportData, ReportColumn } from '../../services/export-service';
 import { AIClientService } from '../../services/ai-client';
 import { DBService } from '../../services/db';
+import { RoomAllocationService } from '../../services/room-allocation';
 
 interface ReportManagerProps {
   students: Student[];
