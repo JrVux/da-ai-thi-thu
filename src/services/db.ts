@@ -880,10 +880,11 @@ export class DBService {
         backup[key] = localStorage.getItem(key);
       }
     }
+    const activeSchool = this.getSchools().find(s => s.id === this.getActiveSchoolId());
     return JSON.stringify({
       version: '1.0.0',
       exported_at: new Date().toISOString(),
-      school_name: this.getSchool(this.getActiveSchoolId()).ten_truong,
+      school_name: activeSchool?.ten_truong || 'Trường THPT Cà Mau',
       data: backup
     }, null, 2);
   }
