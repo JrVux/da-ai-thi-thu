@@ -139,7 +139,7 @@ export const ActivationGate: React.FC<ActivationGateProps> = ({
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
             <span>Chuẩn GDPT 2018 (Thông tư 24/2024/TT-BGDĐT)</span>
           </div>
-          <div>Bản quyền THPT Cà Mau</div>
+          <div>Phòng CNTT - THPT Cà Mau by Antigravity 2026</div>
         </div>
       </div>
     </div>

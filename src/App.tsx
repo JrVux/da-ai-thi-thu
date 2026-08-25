@@ -372,7 +372,7 @@ export const App: React.FC = () => {
       <footer className="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500 mt-auto">
         <div className="max-w-7xl mx-auto px-4 flex flex-wrap items-center justify-between gap-2">
           <div>
-            <strong>Phần Mềm Quản Lý Kỳ Thi THPT (Web App)</strong> • Kế thừa kiến trúc THPT Cà Mau & ThiDua
+            <strong>Phần Mềm Quản Lý Kỳ Thi Thử THPT (Web App)</strong> • Phòng CNTT - THPT Cà Mau by Antigravity 2026
           </div>
           <div>
             Phiên bản 1.0.0 • Tiêu chuẩn Chương trình GDPT 2018 (Thông tư 24/2024/TT-BGDĐT)
