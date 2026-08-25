@@ -9,7 +9,9 @@ import {
   Sparkles, 
   ShieldCheck, 
   FolderOpen,
-  Plus
+  Plus,
+  Cloud,
+  RefreshCw
 } from 'lucide-react';
 import { School, ExamConfig, UserRole } from '../../types';
 import defaultSchoolLogo from '../../assets/logo.png';
@@ -30,6 +32,8 @@ interface NavbarProps {
   onChangeUserRole: (role: UserRole) => void;
   onOpenConfigModal: () => void;
   onOpenAIModal: () => void;
+  onSyncCloud?: () => void;
+  isSyncingCloud?: boolean;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -48,6 +52,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onChangeUserRole,
   onOpenConfigModal,
   onOpenAIModal,
+  onSyncCloud,
+  isSyncingCloud,
 }) => {
   const [showAddSchool, setShowAddSchool] = useState(false);
   const [newSchoolName, setNewSchoolName] = useState('');
@@ -104,8 +110,21 @@ export const Navbar: React.FC<NavbarProps> = ({
           </span>
         </div>
 
-        {/* Right Side: AI Studio & Vai trò */}
-        <div className="flex items-center justify-end gap-3 flex-shrink-0">
+        {/* Right Side: Cloud Sync, AI Studio & Vai trò */}
+        <div className="flex items-center justify-end gap-2.5 flex-shrink-0">
+          {/* Cloud Sync Button */}
+          {onSyncCloud && (
+            <button
+              onClick={onSyncCloud}
+              disabled={isSyncingCloud}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-sky-700/80 hover:bg-sky-600 border border-sky-500/40 text-white font-semibold shadow-xs transition-all text-xs cursor-pointer"
+              title="Đồng bộ dữ liệu tức thì 2 chiều với Supabase Cloud"
+            >
+              <Cloud className={`w-3.5 h-3.5 text-sky-200 ${isSyncingCloud ? 'animate-bounce' : ''}`} />
+              <span>{isSyncingCloud ? 'Đang đồng bộ...' : 'Đồng Bộ Cloud'}</span>
+            </button>
+          )}
+
           {/* AI Settings Trigger */}
           <button
             onClick={onOpenAIModal}

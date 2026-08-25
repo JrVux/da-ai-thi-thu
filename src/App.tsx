@@ -11,6 +11,7 @@ import { ActivationGate } from './components/Auth/ActivationGate';
 import { ToastContainer, ToastMessage } from './components/Common/Toast';
 import { DBService, DEFAULT_EXAM_CONFIG } from './services/db';
 import { RoomAllocationService } from './services/room-allocation';
+import { SupabaseService } from './services/supabase-client';
 import { 
   School, 
   ExamConfig, 
@@ -30,6 +31,7 @@ export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('students');
   const [userRole, setUserRole] = useState<UserRole>('super_admin');
   const [isAIModalOpen, setIsAIModalOpen] = useState<boolean>(false);
+  const [isSyncingCloud, setIsSyncingCloud] = useState<boolean>(false);
 
   // Schools & Active School
   const [schools, setSchools] = useState<School[]>(() => DBService.getSchools());
@@ -81,6 +83,40 @@ export const App: React.FC = () => {
     setAssignments(DBService.getRoomAssignments(schoolId, examId));
     setAuditLogs(DBService.getAuditLogs(schoolId));
   }, []);
+
+  // Auto-Pull từ Supabase Cloud khi mở ứng dụng
+  useEffect(() => {
+    if (SupabaseService.isConfigured()) {
+      SupabaseService.pullFromCloud(activeSchoolId, activeExamId).then(res => {
+        if (res.success) {
+          reloadExamData(activeSchoolId, activeExamId);
+        }
+      });
+    }
+  }, [activeSchoolId, activeExamId, reloadExamData]);
+
+  // Đồng bộ 2 chiều (Push + Pull) khi nhấn nút trên Header
+  const handleSyncCloud = async () => {
+    if (!SupabaseService.isConfigured()) {
+      addToast('warning', 'Chưa cấu hình Supabase', 'Vui lòng cấu hình URL và Anon Key trong mục Cấu Hình.');
+      return;
+    }
+    setIsSyncingCloud(true);
+    try {
+      await SupabaseService.pushToCloud(activeSchoolId, activeExamId);
+      const pullRes = await SupabaseService.pullFromCloud(activeSchoolId, activeExamId);
+      reloadExamData(activeSchoolId, activeExamId);
+      if (pullRes.success) {
+        addToast('success', 'Đồng bộ Cloud thành công!', 'Dữ liệu giữa các máy tính đã được đồng bộ 100%.');
+      } else {
+        addToast('warning', 'Đã đẩy dữ liệu', pullRes.message);
+      }
+    } catch (err: any) {
+      addToast('error', 'Lỗi đồng bộ', err.message || 'Không thể đồng bộ Cloud.');
+    } finally {
+      setIsSyncingCloud(false);
+    }
+  };
 
   useEffect(() => {
     DBService.setActiveSchoolId(activeSchoolId);
@@ -282,6 +318,8 @@ export const App: React.FC = () => {
         onChangeUserRole={setUserRole}
         onOpenConfigModal={() => setActiveTab('exam-config')}
         onOpenAIModal={() => setIsAIModalOpen(true)}
+        onSyncCloud={handleSyncCloud}
+        isSyncingCloud={isSyncingCloud}
       />
 
       {/* Main Content Area */}
