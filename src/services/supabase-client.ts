@@ -50,10 +50,8 @@ export class SupabaseService {
   static async testConnection(url: string, key: string): Promise<{ success: boolean; message: string }> {
     try {
       const tempClient = createClient(url.trim(), key.trim());
-      // Thử truy vấn bảng truong hoặc auth
-      const { data, error } = await tempClient.from('truong').select('id').limit(1);
+      const { error } = await tempClient.from('truong').select('id').limit(1);
       if (error && error.code !== 'PGRST116') {
-        // Nếu chưa tạo bảng truong nhưng kết nối thành công tới Supabase
         if (error.message.includes('relation "public.truong" does not exist')) {
           return {
             success: true,
@@ -80,7 +78,6 @@ export class SupabaseService {
       const exam = DBService.getExamConfig(schoolId, examId);
       const students = DBService.getStudents(schoolId, examId);
       const scores = DBService.getScores(schoolId, examId);
-      const rooms = DBService.getRooms(schoolId, examId);
 
       // 1. Upsert School
       if (school) {
@@ -133,18 +130,14 @@ export class SupabaseService {
       if (scores.length > 0) {
         const scorePayload = scores.map(sc => ({
           id: sc.id,
-          thi_sinh_id: sc.thi_sinh_id,
+          truong_id: schoolId,
           sbd: sc.sbd,
           toan: sc.toan,
-          ngu_van: sc.ngu_van,
-          mon_tu_chon_1: sc.mon_tu_chon_1,
-          diem_mon_1: sc.diem_mon_1,
-          mon_tu_chon_2: sc.mon_tu_chon_2,
-          diem_mon_2: sc.diem_mon_2,
+          ngu_van: sc.van,
+          diem_mon_1: sc.mon_1,
+          diem_mon_2: sc.mon_2,
           khuyen_khich: sc.khuyen_khich || 0,
-          uu_tien: sc.uu_tien || 0,
-          diem_xet_tot_nghiep: sc.diem_xet_tot_nghiep || 0,
-          ket_qua: sc.ket_qua || 'Chưa xét'
+          uu_tien: sc.uu_tien || 0
         }));
         await client.from('diem_thi').upsert(scorePayload);
       }
@@ -167,7 +160,7 @@ export class SupabaseService {
 
     try {
       const { data: cloudStudents, error: errSt } = await client.from('thi_sinh').select('*').eq('truong_id', schoolId);
-      const { data: cloudScores, error: errSc } = await client.from('diem_thi').select('*');
+      const { data: cloudScores, error: errSc } = await client.from('diem_thi').select('*').eq('truong_id', schoolId);
 
       if (errSt) throw errSt;
 
@@ -189,33 +182,28 @@ export class SupabaseService {
           khuyen_khich: Number(cs.khuyen_khich) || 0,
           uu_tien: Number(cs.uu_tien) || 0
         }));
-        DBService.saveStudents(schoolId, mappedStudents, examId);
+        DBService.saveBulkStudents(mappedStudents, 'Supabase Sync', examId);
       }
 
       if (cloudScores && cloudScores.length > 0) {
         const mappedScores: ExamScore[] = cloudScores.map(cs => ({
           id: cs.id,
-          thi_sinh_id: cs.thi_sinh_id,
           truong_id: schoolId,
           ky_thi_id: examId,
           sbd: cs.sbd,
           toan: cs.toan,
-          ngu_van: cs.ngu_van,
-          mon_tu_chon_1: cs.mon_tu_chon_1,
-          diem_mon_1: cs.diem_mon_1,
-          mon_tu_chon_2: cs.mon_tu_chon_2,
-          diem_mon_2: cs.diem_mon_2,
+          van: cs.ngu_van,
+          mon_1: cs.diem_mon_1,
+          mon_2: cs.diem_mon_2,
           khuyen_khich: Number(cs.khuyen_khich) || 0,
-          uu_tien: Number(cs.uu_tien) || 0,
-          diem_xet_tot_nghiep: Number(cs.diem_xet_tot_nghiep) || 0,
-          ket_qua: cs.ket_qua || 'Đậu tốt nghiệp'
+          uu_tien: Number(cs.uu_tien) || 0
         }));
-        DBService.saveScores(schoolId, mappedScores, examId);
+        DBService.saveBulkScores(mappedScores, 'Supabase Sync', examId);
       }
 
       return {
         success: true,
-        message: `Đã nạp ${cloudStudents?.length || 0} thí sinh từ Supabase Cloud về máy thành công!`
+        message: `Đã nạp ${cloudStudents?.length || 0} thí sinh và ${cloudScores?.length || 0} bài thi từ Supabase Cloud về máy thành công!`
       };
     } catch (err: any) {
       return { success: false, message: err.message || 'Lỗi khi tải dữ liệu từ Cloud.' };
