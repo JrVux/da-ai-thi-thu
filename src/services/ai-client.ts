@@ -96,13 +96,40 @@ export class AIClientService {
     };
   }
 
-  // 1. Google Gemini API Call (Chuẩn Google AI Studio 2025/2026)
+  // 1. Google Gemini API Call (Tự động nhận diện model tương thích cho từng Key)
   private static async callGemini(prompt: string, apiKey: string): Promise<string> {
     const cleanKey = apiKey.trim().replace(/^["']|["']$/g, '');
-    const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+    let candidateModels: string[] = [
+      'gemma-4-26b-a4b-it',
+      'gemini-3.7-flash',
+      'gemini-3.5-flash',
+      'gemini-flash-latest',
+      'gemini-1.5-flash',
+      'gemini-2.0-flash'
+    ];
+
+    try {
+      // Truy vấn danh sách model được cấp quyền thực tế của Key
+      const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`);
+      if (listRes.ok) {
+        const listData = await listRes.json();
+        if (listData.models && Array.isArray(listData.models)) {
+          const remoteModels = listData.models
+            .filter((m: any) => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
+            .map((m: any) => m.name.replace('models/', ''));
+          
+          if (remoteModels.length > 0) {
+            candidateModels = remoteModels;
+          }
+        }
+      }
+    } catch {
+      // Giữ candidateModels mặc định nếu không thể lấy danh sách
+    }
+
     let lastErr = '';
 
-    for (const model of models) {
+    for (const model of candidateModels) {
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`;
         const res = await fetch(url, {
@@ -123,7 +150,7 @@ export class AIClientService {
           if (text) return text;
         } else {
           const errJson = await res.json().catch(() => ({}));
-          lastErr = errJson?.error?.message || `HTTP ${res.status}: ${res.statusText}`;
+          lastErr = errJson?.error?.message || `HTTP ${res.status}`;
         }
       } catch (err: any) {
         lastErr = err.message || String(err);

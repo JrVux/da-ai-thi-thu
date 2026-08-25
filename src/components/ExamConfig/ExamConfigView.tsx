@@ -19,7 +19,11 @@ import {
   KeyRound,
   Copy,
   Lock,
-  ShieldCheck
+  ShieldCheck,
+  Download,
+  Upload,
+  Database,
+  HardDrive
 } from 'lucide-react';
 import { ExamConfig, AuditLog, School } from '../../types';
 import { DBService } from '../../services/db';
@@ -98,6 +102,38 @@ export const ExamConfigView: React.FC<ExamConfigViewProps> = ({
     if (window.confirm('Khóa lại phần mềm ngay bây giờ?\n\nBạn sẽ được đưa về màn hình kích hoạt và cần nhập lại mã mời để tiếp tục.')) {
       DBService.deactivateSystem();
       window.location.reload();
+    }
+  };
+
+  const handleExportBackup = () => {
+    const json = DBService.exportFullBackupJSON();
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `SaoLuu_DuLieu_THPTCaMau_${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (window.confirm('Bạn có chắc chắn muốn PHỤC HỒI dữ liệu từ file này? Dữ liệu hiện tại sẽ được thay thế bằng bản sao lưu.')) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const content = event.target?.result as string;
+        if (content) {
+          const res = DBService.importFullBackupJSON(content);
+          if (res.success) {
+            alert(res.message);
+            window.location.reload();
+          } else {
+            alert(`❌ Lỗi: ${res.message}`);
+          }
+        }
+      };
+      reader.readAsText(file);
     }
   };
 
@@ -407,6 +443,50 @@ export const ExamConfigView: React.FC<ExamConfigViewProps> = ({
                 <Lock className="w-3.5 h-3.5 text-slate-500" />
                 <span>Khóa Lại Phần Mềm (Thử Nghiệm Màn Hình Mời)</span>
               </button>
+            </div>
+          </div>
+
+          {/* Card Sao Lưu & Phục Hồi Dữ Liệu (Chống Mất Dữ Liệu) */}
+          <div className="bg-white rounded-2xl border border-emerald-100 p-6 shadow-xs relative overflow-hidden">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Database className="w-4 h-4 text-emerald-600" />
+                <span>Sao Lưu & Phục Hồi Dữ Liệu</span>
+              </h3>
+              <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-full border border-emerald-200">
+                An Toàn 100%
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-600 mt-3 leading-relaxed">
+              Tải file sao lưu về máy để bảo vệ dữ liệu khi dọn dẹp trình duyệt hoặc chuyển đổi máy tính:
+            </p>
+
+            <div className="mt-4 space-y-2.5">
+              <button
+                type="button"
+                onClick={handleExportBackup}
+                className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                <span>Tải File Sao Lưu Toàn Bộ Kỳ Thi (.json)</span>
+              </button>
+
+              <label className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                <Upload className="w-4 h-4 text-slate-600" />
+                <span>Phục Hồi Dữ Liệu Từ File (.json)</span>
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleImportBackup}
+                  className="hidden"
+                />
+              </label>
+            </div>
+
+            <div className="mt-3 p-2.5 bg-slate-50 rounded-xl border border-slate-100 text-[11px] text-slate-500 flex items-start gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+              <span>Dù xóa cache hay cài lại máy tính, chỉ cần nạp lại file sao lưu là toàn bộ thí sinh, điểm thi và cấu hình được khôi phục nguyên vẹn.</span>
             </div>
           </div>
 

@@ -868,4 +868,43 @@ export class DBService {
     this.setItem(STORAGE_KEYS.INVITE_ACTIVATED, false);
     this.setItem('qlkt_activated_with_code_v1', '');
   }
+
+  // ==========================================
+  // FULL BACKUP & RESTORE (Chống Mất Dữ Liệu Khi Xóa Cache)
+  // ==========================================
+  static exportFullBackupJSON(): string {
+    const backup: Record<string, any> = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('qlkt_')) {
+        backup[key] = localStorage.getItem(key);
+      }
+    }
+    return JSON.stringify({
+      version: '1.0.0',
+      exported_at: new Date().toISOString(),
+      school_name: this.getSchool(this.getActiveSchoolId()).ten_truong,
+      data: backup
+    }, null, 2);
+  }
+
+  static importFullBackupJSON(jsonString: string): { success: boolean; message: string } {
+    try {
+      const parsed = JSON.parse(jsonString);
+      if (!parsed.data || typeof parsed.data !== 'object') {
+        return { success: false, message: 'File sao lưu không đúng định dạng dữ liệu.' };
+      }
+      Object.entries(parsed.data).forEach(([key, val]) => {
+        if (typeof val === 'string') {
+          localStorage.setItem(key, val);
+        }
+      });
+      return { 
+        success: true, 
+        message: `Phục hồi thành công toàn bộ dữ liệu từ bản sao lưu ngày ${new Date(parsed.exported_at || Date.now()).toLocaleString('vi-VN')}.` 
+      };
+    } catch (e: any) {
+      return { success: false, message: e.message || 'Lỗi khi đọc file sao lưu.' };
+    }
+  }
 }
