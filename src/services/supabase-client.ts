@@ -10,15 +10,25 @@ export interface SupabaseConfig {
   autoSync: boolean;
 }
 
+const DEFAULT_SUPABASE_URL = 'https://ohxzlbqfeldxpgtawtvh.supabase.co';
+
 export class SupabaseService {
   private static client: SupabaseClient | null = null;
 
   static getConfig(): SupabaseConfig {
     try {
       const data = localStorage.getItem(SUPABASE_CONFIG_KEY);
-      return data ? JSON.parse(data) : { url: '', anonKey: '', autoSync: false };
+      if (data) {
+        const parsed = JSON.parse(data);
+        return {
+          url: parsed.url || DEFAULT_SUPABASE_URL,
+          anonKey: parsed.anonKey || '',
+          autoSync: Boolean(parsed.autoSync)
+        };
+      }
+      return { url: DEFAULT_SUPABASE_URL, anonKey: '', autoSync: false };
     } catch {
-      return { url: '', anonKey: '', autoSync: false };
+      return { url: DEFAULT_SUPABASE_URL, anonKey: '', autoSync: false };
     }
   }
 
