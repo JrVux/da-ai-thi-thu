@@ -114,6 +114,7 @@ export const ReportManager: React.FC<ReportManagerProps> = ({
   // Handle Run AI Analysis
   const handleRunAIAnalysis = async () => {
     setIsAnalyzingAI(true);
+    setAiAnalysis(null);
     try {
       const passedCount = allGradResults.filter(r => r.is_pass).length;
       const passRate = students.length > 0 ? Number(((passedCount / students.length) * 100).toFixed(1)) : 0;
@@ -140,7 +141,7 @@ export const ReportManager: React.FC<ReportManagerProps> = ({
       );
 
       setAiAnalysis(result);
-      onShowToast('success', 'Hoàn tất phân tích AI', `Phục vụ bởi ${result.provider_used}`);
+      onShowToast('success', 'Hoàn tất phân tích AI', `Phục vụ bởi: ${result.provider_used}`);
     } catch (err: any) {
       onShowToast('error', 'Lỗi phân tích AI', err.message || 'Không thể chạy phân tích.');
     } finally {
@@ -266,25 +267,64 @@ export const ReportManager: React.FC<ReportManagerProps> = ({
       });
     }
 
-    // 4. Danh sách đăng ký dự thi theo phòng (Chuẩn 5 cột)
+    // 4. Danh sách đăng ký dự thi theo phòng (Chuẩn 5 cột theo mẫu DangKyDuThi.xlsx)
     else if (selectedReportId === 'pre-stats-room') {
       reportTitle = 'DANH SÁCH ĐĂNG KÝ DỰ THI';
       columns = [
         { header: 'STT', key: 'stt', width: 6, align: 'center' },
         { header: 'Phòng thi', key: 'phong', width: 14, align: 'left' },
-        { header: 'Số thí sinh', key: 'so_luong', width: 16, align: 'center' },
-        { header: 'Ca 1', key: 'ca_1', width: 32, align: 'left' },
-        { header: 'Ca 2', key: 'ca_2', width: 32, align: 'left' },
+        { header: 'Số thí sinh dự thi', key: 'so_luong', width: 18, align: 'center' },
+        { header: 'Ca 1 (Môn tự chọn 1)', key: 'ca_1', width: 32, align: 'left' },
+        { header: 'Ca 2 (Môn tự chọn 2)', key: 'ca_2', width: 32, align: 'left' },
       ];
 
-      rooms.forEach((r, idx) => {
-        const studentIds = assignments[r.id] || [];
+      // Đảm bảo có danh sách phòng thi
+      let effectiveRooms = rooms;
+      if (effectiveRooms.length === 0) {
+        effectiveRooms = Array.from({ length: examConfig.so_phong || 10 }, (_, i) => ({
+          id: `room-gen-${i + 1}`,
+          truong_id: school.id,
+          ky_thi_id: examConfig.id,
+          ma_phong: String(i + 1).padStart(3, '0'),
+          ten_phong: `Phòng ${String(i + 1).padStart(3, '0')}`,
+          suc_chua: examConfig.so_hoc_sinh_phong || 24,
+          so_ca_thi: 2
+        }));
+      }
+
+      // Đảm bảo có phân bổ thí sinh
+      let currentAssignments = assignments;
+      if (Object.keys(currentAssignments).length === 0 && students.length > 0 && effectiveRooms.length > 0) {
+        const alloc = RoomAllocationService.allocateRooms(students, effectiveRooms);
+        currentAssignments = alloc.assignments;
+      }
+
+      effectiveRooms.forEach((r, idx) => {
+        const studentIds = currentAssignments[r.id] || [];
+        const roomStudents = studentIds.map(id => studentMap.get(id)).filter(Boolean) as Student[];
+
+        // Phân nhóm môn tự chọn Ca 1 và Ca 2
+        const ca1Map: Record<string, number> = {};
+        const ca2Map: Record<string, number> = {};
+
+        roomStudents.forEach(st => {
+          if (st.mon_tu_chon_1) {
+            ca1Map[st.mon_tu_chon_1] = (ca1Map[st.mon_tu_chon_1] || 0) + 1;
+          }
+          if (st.mon_tu_chon_2) {
+            ca2Map[st.mon_tu_chon_2] = (ca2Map[st.mon_tu_chon_2] || 0) + 1;
+          }
+        });
+
+        const ca1Text = Object.entries(ca1Map).map(([m, c]) => `${m} (${c})`).join('; ') || (roomStudents.length > 0 ? 'Toán / Văn' : '-');
+        const ca2Text = Object.entries(ca2Map).map(([m, c]) => `${m} (${c})`).join('; ') || '-';
+
         rows.push({
           stt: idx + 1,
           phong: r.ten_phong,
-          so_luong: studentIds.length,
-          ca_1: '-',
-          ca_2: '-'
+          so_luong: roomStudents.length,
+          ca_1: ca1Text,
+          ca_2: ca2Text
         });
       });
     }
