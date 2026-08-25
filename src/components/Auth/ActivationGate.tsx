@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { KeyRound, ShieldCheck, Lock, ArrowRight } from 'lucide-react';
 import { DBService } from '../../services/db';
 import { School } from '../../types';
+import defaultSchoolLogo from '../../assets/logo.png';
 
 interface ActivationGateProps {
   school: School;
@@ -52,11 +53,14 @@ export const ActivationGate: React.FC<ActivationGateProps> = ({
           <div className="flex justify-center mb-3">
             <div className="w-16 h-16 rounded-2xl bg-white p-1 shadow-lg border-2 border-amber-400 flex items-center justify-center overflow-hidden">
               <img
-                src={school.logo || '/logo.png'}
+                src={school.logo && school.logo.startsWith('data:') ? school.logo : defaultSchoolLogo}
                 alt={school.ten_truong}
                 className="w-full h-full object-contain"
                 onError={(e) => {
-                  (e.target as HTMLElement).style.display = 'none';
+                  const target = e.target as HTMLImageElement;
+                  if (target.src !== defaultSchoolLogo) {
+                    target.src = defaultSchoolLogo;
+                  }
                 }}
               />
             </div>

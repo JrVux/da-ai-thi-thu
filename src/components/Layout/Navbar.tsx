@@ -12,6 +12,7 @@ import {
   Plus
 } from 'lucide-react';
 import { School, ExamConfig, UserRole } from '../../types';
+import defaultSchoolLogo from '../../assets/logo.png';
 
 interface NavbarProps {
   activeTab: string;
@@ -132,13 +133,15 @@ export const Navbar: React.FC<NavbarProps> = ({
               className="rounded-xl bg-white p-0.5 border border-slate-200 shadow-xs flex items-center justify-center overflow-hidden flex-shrink-0"
             >
               <img
-                src={activeSchool.logo || "/logo.png"}
+                src={activeSchool.logo && activeSchool.logo.startsWith('data:') ? activeSchool.logo : defaultSchoolLogo}
                 alt={activeSchool.ten_truong}
                 style={{ width: '100%', height: '100%', maxWidth: '48px', maxHeight: '48px', objectFit: 'contain' }}
                 className="block"
                 onError={(e) => {
-                  const target = e.target as HTMLElement;
-                  target.style.display = 'none';
+                  const target = e.target as HTMLImageElement;
+                  if (target.src !== defaultSchoolLogo) {
+                    target.src = defaultSchoolLogo;
+                  }
                 }}
               />
             </div>
