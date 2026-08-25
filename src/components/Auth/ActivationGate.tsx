@@ -40,11 +40,6 @@ export const ActivationGate: React.FC<ActivationGateProps> = ({
     }, 400);
   };
 
-  const handleQuickFill = (code: string) => {
-    setInviteCode(code);
-    setErrorMsg('');
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 animate-fade-in">
       <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden">
@@ -102,7 +97,7 @@ export const ActivationGate: React.FC<ActivationGateProps> = ({
                   type="text"
                   value={inviteCode}
                   onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                  placeholder="VD: THPT-CAMAU-2025"
+                  placeholder="Nhập mã mời được cấp..."
                   className="w-full pl-11 pr-4 py-3 bg-slate-50 border-2 border-slate-300 focus:border-indigo-600 focus:bg-white rounded-2xl text-slate-900 font-bold tracking-widest text-center uppercase placeholder:normal-case placeholder:font-normal placeholder:tracking-normal transition-all outline-hidden text-sm"
                   autoFocus
                 />
@@ -130,23 +125,11 @@ export const ActivationGate: React.FC<ActivationGateProps> = ({
             </button>
           </form>
 
-          {/* Quick Helper / Demo Codes */}
-          <div className="pt-4 border-t border-slate-200">
-            <div className="text-[11px] font-semibold text-slate-500 mb-2 text-center">
-              Mã mời kích hoạt chính thức (Nhấn để chọn nhanh):
-            </div>
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              {['THPT-CAMAU-2025', 'CAMAU-2025', 'GDPT-2025'].map((code) => (
-                <button
-                  key={code}
-                  type="button"
-                  onClick={() => handleQuickFill(code)}
-                  className="px-2.5 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-300 border border-slate-200 rounded-lg text-slate-700 text-xs font-mono font-bold transition-all cursor-pointer"
-                >
-                  {code}
-                </button>
-              ))}
-            </div>
+          {/* Security Notice (Không đề xuất lộ mã) */}
+          <div className="pt-3 border-t border-slate-100 text-center">
+            <p className="text-[11px] text-slate-500 flex items-center justify-center gap-1.5">
+              <span>🔒 Vui lòng liên hệ <strong>Quản Trị Viên (Super Admin)</strong> để được cấp mã mời sử dụng phần mềm.</span>
+            </p>
           </div>
         </div>
 
