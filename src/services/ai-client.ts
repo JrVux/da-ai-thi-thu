@@ -96,14 +96,15 @@ export class AIClientService {
     };
   }
 
-  // 1. Google Gemini API Call (Hỗ trợ đa phiên bản Gemini 2.5, 2.0, 1.5)
+  // 1. Google Gemini API Call (Chuẩn Google AI Studio 2025/2026)
   private static async callGemini(prompt: string, apiKey: string): Promise<string> {
-    const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+    const cleanKey = apiKey.trim().replace(/^["']|["']$/g, '');
+    const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
     let lastErr = '';
 
     for (const model of models) {
       try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`;
         const res = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -122,14 +123,14 @@ export class AIClientService {
           if (text) return text;
         } else {
           const errJson = await res.json().catch(() => ({}));
-          lastErr = errJson?.error?.message || `HTTP ${res.status}`;
+          lastErr = errJson?.error?.message || `HTTP ${res.status}: ${res.statusText}`;
         }
       } catch (err: any) {
         lastErr = err.message || String(err);
       }
     }
 
-    throw new Error(`Google Gemini API Error: ${lastErr || 'Không nhận được phản hồi'}`);
+    throw new Error(lastErr || 'Google Gemini không phản hồi');
   }
 
   // 2. OpenRouter API Call (Fallback 1)
