@@ -152,7 +152,9 @@ export const DEFAULT_INVITE_CODES = [
   'CAMAU-2025',
   'GDPT-2025',
   'ADMIN-8888',
-  'VIP-2025'
+  'VIP-2025',
+  'THI_THU_AI_2026',
+  'Thi_thu_AI_2026'
 ];
 
 // Dual-mode Storage Key Constants
