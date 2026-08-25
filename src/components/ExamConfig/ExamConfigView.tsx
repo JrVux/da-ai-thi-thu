@@ -23,10 +23,15 @@ import {
   Download,
   Upload,
   Database,
-  HardDrive
+  HardDrive,
+  Cloud,
+  CloudUpload,
+  CloudDownload,
+  RefreshCw
 } from 'lucide-react';
 import { ExamConfig, AuditLog, School } from '../../types';
 import { DBService } from '../../services/db';
+import { SupabaseService, SupabaseConfig } from '../../services/supabase-client';
 
 interface ExamConfigViewProps {
   config: ExamConfig;
@@ -72,6 +77,45 @@ export const ExamConfigView: React.FC<ExamConfigViewProps> = ({
   const [inviteCodes, setInviteCodes] = useState<string[]>(() => DBService.getInviteCodes());
   const [newCustomCode, setNewCustomCode] = useState('');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  // Supabase Cloud Sync
+  const [supabaseConfig, setSupabaseConfig] = useState<SupabaseConfig>(() => SupabaseService.getConfig());
+  const [isTestingSupabase, setIsTestingSupabase] = useState(false);
+  const [supabaseStatus, setSupabaseStatus] = useState<string | null>(null);
+  const [isSyncingCloud, setIsSyncingCloud] = useState(false);
+
+  const handleSaveSupabase = (e: React.FormEvent) => {
+    e.preventDefault();
+    SupabaseService.saveConfig(supabaseConfig);
+    alert('Đã lưu cấu hình kết nối Supabase Cloud Database!');
+  };
+
+  const handleTestSupabase = async () => {
+    setIsTestingSupabase(true);
+    setSupabaseStatus(null);
+    const res = await SupabaseService.testConnection(supabaseConfig.url, supabaseConfig.anonKey);
+    setIsTestingSupabase(false);
+    setSupabaseStatus(res.success ? `✅ ${res.message}` : `❌ ${res.message}`);
+  };
+
+  const handlePushToCloud = async () => {
+    setIsSyncingCloud(true);
+    const res = await SupabaseService.pushToCloud(school.id, formData.id);
+    setIsSyncingCloud(false);
+    alert(res.success ? `✅ ${res.message}` : `❌ ${res.message}`);
+  };
+
+  const handlePullFromCloud = async () => {
+    if (window.confirm('Tải dữ liệu từ Cloud về máy? Dữ liệu cục bộ hiện tại sẽ được cập nhật từ Supabase.')) {
+      setIsSyncingCloud(true);
+      const res = await SupabaseService.pullFromCloud(school.id, formData.id);
+      setIsSyncingCloud(false);
+      alert(res.success ? `✅ ${res.message}` : `❌ ${res.message}`);
+      if (res.success) {
+        window.location.reload();
+      }
+    }
+  };
 
   const handleAddCode = (e: React.FormEvent) => {
     e.preventDefault();
@@ -444,6 +488,102 @@ export const ExamConfigView: React.FC<ExamConfigViewProps> = ({
                 <span>Khóa Lại Phần Mềm (Thử Nghiệm Màn Hình Mời)</span>
               </button>
             </div>
+          </div>
+
+          {/* Card Supabase Cloud Database (Đồng Bộ Đám Mây PostgreSQL) */}
+          <div className="bg-white rounded-2xl border border-sky-100 p-6 shadow-xs relative overflow-hidden">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Cloud className="w-4 h-4 text-sky-600" />
+                <span>Supabase Cloud Database</span>
+              </h3>
+              <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border ${
+                SupabaseService.isConfigured() 
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                  : 'bg-slate-100 text-slate-500 border-slate-200'
+              }`}>
+                {SupabaseService.isConfigured() ? 'Đã Cấu Hình' : 'Chưa Kết Nối'}
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-600 mt-3 leading-relaxed">
+              Lưu trữ vĩnh viễn dữ liệu trên cơ sở dữ liệu đám mây PostgreSQL của <strong>Supabase</strong>, tự động đồng bộ giữa nhiều máy tính:
+            </p>
+
+            <form onSubmit={handleSaveSupabase} className="mt-3.5 space-y-3">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">1. Supabase Project URL</label>
+                <input
+                  type="text"
+                  value={supabaseConfig.url}
+                  onChange={e => setSupabaseConfig({ ...supabaseConfig, url: e.target.value })}
+                  placeholder="https://xyzcompany.supabase.co"
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 focus:border-sky-500 rounded-xl text-xs font-mono outline-hidden"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">2. Supabase Anon Public Key</label>
+                <input
+                  type="password"
+                  value={supabaseConfig.anonKey}
+                  onChange={e => setSupabaseConfig({ ...supabaseConfig, anonKey: e.target.value })}
+                  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6..."
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 focus:border-sky-500 rounded-xl text-xs font-mono outline-hidden"
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <button
+                  type="button"
+                  onClick={handleTestSupabase}
+                  disabled={isTestingSupabase || !supabaseConfig.url}
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                >
+                  {isTestingSupabase ? 'Đang kiểm tra...' : 'Kiểm Tra Kết Nối'}
+                </button>
+
+                <button
+                  type="submit"
+                  className="px-3.5 py-1.5 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
+                >
+                  Lưu Cấu Hình
+                </button>
+              </div>
+            </form>
+
+            {supabaseStatus && (
+              <div className="mt-2.5 p-2 bg-slate-900 text-slate-200 rounded-xl text-[11px] font-mono whitespace-pre-wrap">
+                {supabaseStatus}
+              </div>
+            )}
+
+            {/* Cloud Sync Actions */}
+            {SupabaseService.isConfigured() && (
+              <div className="mt-3.5 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={handlePushToCloud}
+                  disabled={isSyncingCloud}
+                  className="py-2 px-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-[11px] rounded-xl border border-indigo-200 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                  title="Đẩy dữ liệu hiện tại lên Cloud"
+                >
+                  <CloudUpload className="w-3.5 h-3.5" />
+                  <span>{isSyncingCloud ? 'Đang gửi...' : 'Đẩy Lên Cloud'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handlePullFromCloud}
+                  disabled={isSyncingCloud}
+                  className="py-2 px-2.5 bg-sky-50 hover:bg-sky-100 text-sky-700 font-bold text-[11px] rounded-xl border border-sky-200 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                  title="Kéo dữ liệu từ Cloud về máy này"
+                >
+                  <CloudDownload className="w-3.5 h-3.5" />
+                  <span>Tải Về Máy Này</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Card Sao Lưu & Phục Hồi Dữ Liệu (Chống Mất Dữ Liệu) */}
